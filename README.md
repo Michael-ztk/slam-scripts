@@ -18,4 +18,4 @@ source ~/work_ws/devel/setup.bash
 python3 scripts/livox_ros2_to_ros1.py <ros2_bag_dir> [output.bag]
 ```
 
-依赖：`rosbags`, `rosbag`, `livox_ros_driver`（ROS1）
+依赖：`rosbags`, `rosbag`, `livox_ros_driver2`（ROS1）
