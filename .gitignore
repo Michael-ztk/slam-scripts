@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 输出产物
+*.tum
+*.pcd
+cpu.log
+*.png

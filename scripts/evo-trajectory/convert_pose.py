@@ -1,14 +1,23 @@
-import rosbag
-from geometry_msgs.msg import PoseWithCovarianceStamped
+#!/usr/bin/env python3
+"""将 ROS bag 中的位姿话题或 TF 轨迹导出为 TUM 格式
 
+两种模式：
+  bag  从 bag 文件里提取 PoseWithCovarianceStamped 话题（离线）
+  tf   实时订阅 TF 链并输出（在线，需 rospy 运行）
+
+用法：
+  python3 convert_pose.py bag -i input.bag -o out.tum -t /pose_with_cov
+  python3 convert_pose.py tf -o out.tum --target map --source base_link
+"""
+
+import argparse
+import os
+import sys
+
+import rosbag
 import rospy
 import tf2_ros
-import os
-from geometry_msgs.msg import TransformStamped
-
-# 输入和输出路径
-input_bag = "/home/yjh/bag/test/0951/2025-09-11-10-05-59_cleanning/rosbag_2025-09-11-10-11-45_2.bag"
-old_output_file = "old_trajectory_tum_wave.txt"
+from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped
 
 class BagToTumConverter:
     def __init__(self, input_bag, output_file, topic_name="/pose_with_cov"):
@@ -114,24 +123,35 @@ class PoseToTUMConverter:
     def __del__(self):
         self.file.close()
 
+def main():
+    parser = argparse.ArgumentParser(description="位姿/TF 轨迹转 TUM 格式")
+    sub = parser.add_subparsers(dest="mode", required=True)
+
+    p_bag = sub.add_parser("bag", help="从 bag 文件提取位姿话题")
+    p_bag.add_argument("-i", "--input", required=True, help="输入 rosbag 路径")
+    p_bag.add_argument("-o", "--output", required=True, help="输出 TUM 文件")
+    p_bag.add_argument("-t", "--topic", default="/pose_with_cov", help="位姿话题名")
+
+    p_tf = sub.add_parser("tf", help="实时订阅 TF 链导出轨迹")
+    p_tf.add_argument("-o", "--output", required=True, help="输出 TUM 文件")
+    p_tf.add_argument("--target", default="map", help="目标坐标系")
+    p_tf.add_argument("--source", default="base_link", help="源坐标系")
+
+    args = parser.parse_args()
+
+    if args.mode == "bag":
+        conv = BagToTumConverter(args.input, args.output, args.topic)
+        conv.convert()
+    else:
+        rospy.init_node("pose_to_tum")
+        conv = PoseToTUMConverter(args.target, args.source, args.output)
+        try:
+            conv.run()
+        except rospy.ROSInterruptException:
+            pass
+
+
 if __name__ == "__main__":
-    rospy.init_node("pose_to_tum")
-    
-    # 参数设置（可通过ROS参数服务器动态配置）
-    target_frame = rospy.get_param("~target_frame", "map")
-    source_frame = rospy.get_param("~source_frame", "base_link")
-    output_file = rospy.get_param("~output_file", "new_trajectory_tum_tf--initial-0.02.txt")
-    
-    # 创建转换器并执行转换
-    #Bagconverter = BagToTumConverter(input_bag, old_output_file)
-    #Bagconverter.convert()    
-    
-    # 启动转换器
-    TFconverter = PoseToTUMConverter(target_frame, source_frame, output_file)
-    
-    try:
-        TFconverter.run()
-    except rospy.ROSInterruptException:
-        pass
+    main()
         
 

@@ -1,13 +1,19 @@
-import rosbag
-import rospy
+#!/usr/bin/env python3
+"""从 rosbag 的 TF 链（map->odom->base_link）合成轨迹并导出 TUM 格式
+
+用法：
+  python3 convert_tf_bag.py -i input.bag -o out.tum \
+      --target map --intermediate odom --source base_link
+"""
+
+import argparse
 import os
 import sys
-import tf.transformations as tft
-import numpy as np
 
-# 输入和输出路径
-input_bag = "/home/yjh/bag/test/0951/2025-09-11-10-05-59_cleanning/rosbag_2025-09-11-10-11-45_2.bag"
-output_file = "old_trajectory_tum_tf.txt"
+import numpy as np
+import rosbag
+import rospy
+import tf.transformations as tft
 
 class BagTfToTumConverter:
     def __init__(self, input_bag, output_file, target_frame="map", intermediate_frame="odom", source_frame="base_link"):
@@ -94,10 +100,18 @@ class BagTfToTumConverter:
             traceback.print_exc()
             return False
 
-if __name__ == "__main__":
-    if len(sys.argv) >= 3:
-        input_bag = sys.argv[1]
-        output_file = sys.argv[2]
-        
-    converter = BagTfToTumConverter(input_bag, output_file)
+def main():
+    parser = argparse.ArgumentParser(description="从 TF 链导出 TUM 轨迹")
+    parser.add_argument("-i", "--input", required=True, help="输入 rosbag 路径")
+    parser.add_argument("-o", "--output", required=True, help="输出 TUM 文件")
+    parser.add_argument("--target", default="map", help="目标坐标系")
+    parser.add_argument("--intermediate", default="odom", help="中间坐标系")
+    parser.add_argument("--source", default="base_link", help="源坐标系")
+    args = parser.parse_args()
+
+    converter = BagTfToTumConverter(args.input, args.output, args.target, args.intermediate, args.source)
     converter.convert()
+
+
+if __name__ == "__main__":
+    main()
